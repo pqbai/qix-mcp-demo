@@ -27,13 +27,14 @@ jobs:
       - name: Publish
         run: dotnet publish src/WebApp/WebApp.csproj -c Release -o ./publish --no-restore
 
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Zip publish output
+        run: cd ./publish && zip -r ../deploy.zip .
 
-      - name: Deploy to Azure App Service
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'qix-mcp-demo'
-          package: ./publish
+      - name: Deploy via Kudu ZIP Deploy
+        run: |
+          curl -X POST \
+            "https://qix-mcp-demo-c6bch3asc3fnbwa9.scm.eastus-01.azurewebsites.net/api/zipdeploy" \
+            -u "${{ secrets.AZURE_KUDU_USERNAME }}:${{ secrets.AZURE_KUDU_PASSWORD }}" \
+            -H "Content-Type: application/zip" \
+            --data-binary @deploy.zip \
+            --fail
